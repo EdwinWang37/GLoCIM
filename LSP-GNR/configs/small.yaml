@@ -1,0 +1,50 @@
+# @package _global_
+
+# specify here default configuration
+# order of defaults determines the order in which configs override each other
+defaults:
+  - default
+  - override dataset: MINDsmall
+  - override model: LSP-GNR
+  - _self_
+
+optimizer:
+  lr: 0.0002
+
+num_epochs: 5
+batch_size:  32          # dataloaders'batch_size = batch_size / gpu_num
+accumulation_steps: 1     # final acutal batch_size = batch_size * accumulation_steps
+gpu_num: 1
+
+# load or not
+load_checkpoint: false
+load_mark: base_small
+train_mode: true
+val_mode: true
+
+model:
+  use_entity: true
+  entity_neighbors: 10
+  head_num: 20
+  head_dim: 20
+  use_graph_type: 0
+  directed: true
+  num_neighbors: 8
+  k_hops: 2
+  
+
+logger:
+  exp_name: LSP-GNR
+  run_name: ${model.model_name}_${dataset.dataset_name}_${model.k_hops}-${model.num_neighbors}-${model.entity_neighbors}
+
+ml_label: default
+
+num_workers: 4          #工作线程数
+early_stop_patience: 8 #模型的性能在5个连续的周期内都没改进，则训练就会停止
+reprocess: False
+reprocess_neighbors: true
+warmup_ratio: 0.1 #Learning ratio can increase gradually by setting this
+log_steps: 1000  #记录每1000个iteration的性能表现
+
+val_skip_epochs: 1
+val_steps: 1000

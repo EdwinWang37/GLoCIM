@@ -1,0 +1,15 @@
+torch
+torch-geometric
+numpy
+pandas
+nltk
+scikit-learn
+pyrootutils
+tqdm
+swifter
+omegaconf
+wandb
+hydra-core
+torch-scatter
+
+
