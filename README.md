@@ -1,3 +1,3 @@
 # LSP-GNR
 
-This repository releases the code of paper **LSP-GNR**:  Enhancing Long Sequences Picking and Utilization in Global News Graphs for News Recommendation
+This repository releases the code of paper **LICM**:  Effective and Efficient Long Interest Chain Modeling for News Recommendation
