@@ -5,7 +5,7 @@
 defaults:
   - default
   - override dataset: MINDsmall
-  - override model: GLORY
+  - override model: LICM
   - _self_
 
 optimizer:
@@ -34,17 +34,17 @@ model:
   
 
 logger:
-  exp_name: GLORY
+  exp_name: LICM
   run_name: ${model.model_name}_${dataset.dataset_name}_${model.k_hops}-${model.num_neighbors}-${model.entity_neighbors}
 
 ml_label: default
 
-num_workers: 4          #工作线程数
-early_stop_patience: 8 #模型的性能在5个连续的周期内都没改进，则训练就会停止
+num_workers: 4          
+early_stop_patience: 8 
 reprocess: False
 reprocess_neighbors: true
 warmup_ratio: 0.1 #Learning ratio can increase gradually by setting this
-log_steps: 1000  #记录每1000个iteration的性能表现
+log_steps: 1000  
 
 val_skip_epochs: 1
 val_steps: 1000
