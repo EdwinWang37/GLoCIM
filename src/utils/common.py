@@ -16,12 +16,12 @@ from omegaconf import DictConfig, ListConfig
 
 
 def seed_everything(seed):
-    torch.manual_seed(seed)#一些参数随机性被记录：模型初始权重值，dropout设置种子，样本的随机采样
-    torch.cuda.manual_seed_all(seed) #GPU上的随机权重初始化都是相同的，确保不同GPU上的计算都使用相同的随机种子，以确保一致性。
-    torch.backends.cudnn.deterministic = True #用于加速卷积的一个深度学习库
-    torch.backends.cudnn.benchmark = False#这一行代码关闭了CuDNN的自动优化，以确保运行时不会尝试通过使用不同的算法来优化性能，从而保持可重复性
-    random.seed(seed) #Python 标准库的生成器
-    np.random.seed(seed) #设置了 NumPy 库中的随机数生成器的种子
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True 
+    torch.backends.cudnn.benchmark = False
+    random.seed(seed) 
+    np.random.seed(seed) 
 
 def load_model(cfg):
     framework = getattr(importlib.import_module(f"models.{cfg.model.model_name}"), cfg.model.model_name)
@@ -104,9 +104,7 @@ def print_model_memory_usage(model):
     print("Model's state_dict:")
     total_params = 0
     for param_tensor in model.state_dict():
-        # 获取每个参数的大小（元素总数）
         num_params = model.state_dict()[param_tensor].numel()
-        # 每个元素占用的内存（以float32为例，每个元素占4字节）
         param_size = num_params * 4
         total_params += param_size
         print(f"{param_tensor} has {num_params} params: {param_size} bytes")
