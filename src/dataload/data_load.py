@@ -5,10 +5,10 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torch_geometric.utils import to_undirected
-#将有向图转化为无向图
+
 from tqdm import tqdm
 import pickle
-#序列化和反序列化
+
 from dataload.dataset import *
 
 
