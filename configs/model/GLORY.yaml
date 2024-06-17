@@ -2,5 +2,5 @@ defaults:
   - default
   - _self_
 
-model_name : GLORY
+model_name : LICM
 use_graph: true
