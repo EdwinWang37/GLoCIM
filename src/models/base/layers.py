@@ -27,19 +27,19 @@ class DotProduct(nn.Module):
 class ReshapeLayer(nn.Module):
     def __init__(self, target_shape):
         super(ReshapeLayer, self).__init__()
-        self.target_shape = target_shape  # 目标形状
+        self.target_shape = target_shape  
 
     def forward(self, x):
-        # 变换形状时，我们可以使用-1来自动计算该维度的大小
+       
         return x.view(self.target_shape)
 
-class AttentionPooling(nn.Module):#AttentionPooling是一个自定义的神经网络模块，它利用注意力机制来池化（即聚合）输入特征，从而生成一个加权的特征表示。
+class AttentionPooling(nn.Module):
     def __init__(self, emb_size, hidden_size):
         super(AttentionPooling, self).__init__()
         self.att_fc1 = nn.Linear(emb_size, hidden_size)
         self.att_fc2 = nn.Linear(hidden_size, 1)
 
-    def initialize(self):#对fc1和fc2层进行均匀初始化，把偏置初始值置为0
+    def initialize(self):
         nn.init.xavier_uniform_(self.att_fc1.weight, gain=nn.init.calculate_gain('tanh'))
         nn.init.zeros_(self.att_fc1.bias)
         nn.init.xavier_uniform_(self.att_fc2.weight)
@@ -58,7 +58,7 @@ class AttentionPooling(nn.Module):#AttentionPooling是一个自定义的神经�
         return x
 
 
-class ScaledDotProductAttention(nn.Module): #缩放注意力机制，q*k/根d_k
+class ScaledDotProductAttention(nn.Module): 
     def __init__(self, d_k):
         super().__init__()
         self.d_k = d_k
