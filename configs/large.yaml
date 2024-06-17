@@ -5,7 +5,7 @@
 defaults:
   - default
   - override dataset: MINDlarge
-  - override model: GLORY
+  - override model: LICM
   - _self_
 
 optimizer:
@@ -33,7 +33,7 @@ model:
   k_hops: 5
 
 logger:
-  exp_name: GLORY
+  exp_name: LICM
   run_name: ${model.model_name}_${dataset.dataset_name}_${model.k_hops}-${model.num_neighbors}-${model.entity_neighbors}
 
 ml_label: default
