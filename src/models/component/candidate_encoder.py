@@ -24,8 +24,7 @@ class CandidateEncoder(nn.Module):
         else:
             self.atte = Sequential('a,b,c', [
                 (nn.Linear(self.news_dim, self.output_dim),'a -> x'),
-                nn.LeakyReLU(0.2),#解决神经元死亡问题提出来的，正数的话是本身，负数的话是其0.2倍
-            ])
+                nn.LeakyReLU(0.2),
 
 
     def forward(self, candidate_emb, origin_emb=None, neighbor_emb=None):
