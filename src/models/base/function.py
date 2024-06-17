@@ -45,12 +45,11 @@ def init_constant(m):
         nn.init.zeros_(m.bias)
 
 def pad_tensor_to_shape(input_tensor, target_shape=(50, 10)):
-    # 计算需要在每个维度上填充的大小
+    
     padding_height = target_shape[0] - input_tensor.size(0)
     padding_width = target_shape[1] - input_tensor.size(1)
 
-    # 进行填充
-    # F.pad 的填充顺序是 (左, 右, 上, 下)
+
     padded_tensor = F.pad(input_tensor, (0, padding_width, 0, padding_height))
 
     return padded_tensor
