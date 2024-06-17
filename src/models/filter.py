@@ -29,17 +29,17 @@ class filter(nn.Module):
         trimmed_news_neighbors_dict = {}
 
         for key, neighbors_list in news_neighbors_dict.items():
-            # 获取列表的前三个元素，如果列表长度小于三，则获取整个列表
+            
             trimmed_neighbors = neighbors_list[:3]
 
-            # 将裁剪后的列表存储在新的字典中
+           
             trimmed_news_neighbors_dict[key] = trimmed_neighbors
 
 
 
 
 
-        #索引数据 or neighbor list排列的信息 + 向量信息
+ 
         x_encoded = self.local_news_encoder(x_flatten).view(-1, self.news_dim)
 
 
