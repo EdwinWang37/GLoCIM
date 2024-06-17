@@ -30,7 +30,7 @@ class GlobalNewsEncoder(nn.Module):
 
 
 
-        # 分割news_input以获取各个部分的输入，假设category和subcategory位于最后两列
+  
 
         result = self.last_encoder(last_word_emb)
 
