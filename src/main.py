@@ -33,13 +33,13 @@ def train(model, optimizer, scaler, scheduler, dataloader, local_rank, cfg, earl
     updated = False
 
 
-    # print("又开始预处理咯，祝我好运")
+    # print("good luck!")
     # lsp_state_dict = model.module.local_news_encoder.state_dict()
     # data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
     # torch.save(lsp_state_dict, Path(data_dir["train"]) / "news_local_news_encoder.pth")
     # print("ok了")
 
-    #加载
+    #download
     with open(Path(data_dir[mode]) / "news_outputs_dict.pt", 'rb') as bf:
         outputs_dict = torch.load(bf, map_location=torch.device('cuda:0'))
 
@@ -53,17 +53,16 @@ def train(model, optimizer, scaler, scheduler, dataloader, local_rank, cfg, earl
 
     for cnt, (subgraph, mapping_idx, candidate_news, candidate_entity, entity_mask, labels) \
             in enumerate(tqdm(dataloader,
-                              total=int(cfg.num_epochs * (cfg.dataset.pos_count // cfg.batch_size + 1)), #为了先测试成功，把batch设置为1，原语句是total=int(cfg.num_epochs * (cfg.dataset.pos_count // cfg.batch_size + 1)
-                              desc=f"[{local_rank}] Training"), start=1):
+                              total=int(cfg.num_epochs * (cfg.dataset.pos_count // cfg.batch_size + 1)), 
 
-        #测一下处理1000次的时间和内存
+        #test 1000 time and space
         if cnt == 31:
-            print("over了，快看看时间和内存占用情况吧！！！")
+            print("over！！！")
             break;
         if cnt > int(cfg.num_epochs * (cfg.dataset.pos_count // cfg.batch_size + 1)):
-            print("完成{}个epoch的训练了".format(cfg.num_epochs))
+            print("done~~~{} epoch train".format(cfg.num_epochs))
             break
-        subgraph = subgraph.to(local_rank, non_blocking=True) #将子图部署到特定的GPU上
+        subgraph = subgraph.to(local_rank, non_blocking=True) 
         mapping_idx = mapping_idx.to(local_rank, non_blocking=True)
         candidate_news = candidate_news.to(local_rank, non_blocking=True)
         labels = labels.to(local_rank, non_blocking=True)
@@ -79,11 +78,11 @@ def train(model, optimizer, scaler, scheduler, dataloader, local_rank, cfg, earl
                 trimmed_news_neighbors_dict = pickle.load(file)
             updated = False
 
-        with amp.autocast():#自动混合精度训练的一部分，可以提高训练速度和效率。它会自动将某些操作从单精度（float32）转换为半精度（float16），这样做的好处是可以加快计算速度，减少内存使用
+        with amp.autocast():#Automatic mixed precision training is a method that can enhance training speed and efficiency. It automatically converts certain operations from single precision (float32) to half precision (float16). The benefits of doing this include faster computation speeds and reduced memory usage.
             bz_loss, y_hat = model(subgraph, mapping_idx, candidate_news, candidate_entity, entity_mask,outputs_dict,trimmed_news_neighbors_dict, labels)
 
 
-        # Accumulate the gradients，不知道咋加速的，黑盒呗。
+        # Accumulate the gradients
         scaler.scale(bz_loss).backward()
 
         if cnt % cfg.accumulation_steps == 0 or cnt == int(cfg.dataset.pos_count / cfg.batch_size):
@@ -102,23 +101,21 @@ def train(model, optimizer, scaler, scheduler, dataloader, local_rank, cfg, earl
         sum_loss += bz_loss.data.float()
         sum_auc += area_under_curve(labels, y_hat)
         if cnt == 10:
-            print(torch.cuda.get_device_properties(0))  # 显示第一个GPU的属性
-            print(torch.cuda.memory_allocated(0))  # 显示第一个GPU的已分配内存
-            print(torch.cuda.memory_cached(0))  # 显示第一个GPU的缓存内存
+            print(torch.cuda.get_device_properties(0))  # Display the properties of the first GPU.
+            print(torch.cuda.memory_allocated(0))  # Display the allocated memory of the first GPU.
+            print(torch.cuda.memory_cached(0))  
 
-        # ----------------重新训练筛选邻居节点----------------------
+
         if cnt ==  3000  or cnt == 6000  or cnt == 9000:
-            print("又开始预处理咯，祝我好运")
+            print("preprocessing again")
             lsp_state_dict = model.module.local_news_encoder.state_dict()
             data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
             torch.save(lsp_state_dict, Path(data_dir["train"]) / "news_local_news_encoder.pth")
-            prepare_neighbor_vec_list(cfg, 'train')                                                 #忘了with torch.no_grad了吧！！！！！！！！！！！！！！！！！
+            prepare_neighbor_vec_list(cfg, 'train')                                                
             updated = True
 
 
-
-        # -------------------训练集日志---------------------
-        if cnt % cfg.log_steps == 0: #输出训练数据      总共36930次，5个epoch的话
+        if cnt % cfg.log_steps == 0: #      total:36930,5epoch
             if local_rank == 0:
                 wandb.log({"train_loss": sum_loss.item() / cfg.log_steps, "train_auc": sum_auc.item() / cfg.log_steps})
             print('[{}] Ed: {}, average_loss: {:.5f}, average_acc: {:.5f}'.format(
@@ -128,13 +125,13 @@ def train(model, optimizer, scaler, scheduler, dataloader, local_rank, cfg, earl
                     #best_auc = sum_auc.item() / cfg.log_steps
                     #best_loss = sum_loss.item() / cfg.log_steps
             if math.isnan(sum_loss.item() / cfg.log_steps):
-                print("拉倒了，一首凉凉送给自己！")
+                print("gg!")
                 break
 
             sum_loss.zero_()
             sum_auc.zero_()
 
-        # #保存训练集的东东
+        # #保存训练集
         # x = cfg.dataset.pos_count // cfg.batch_size + 1
         # if cnt > x and beyond:
         #     print("------------------------------------------------")
@@ -147,18 +144,18 @@ def train(model, optimizer, scaler, scheduler, dataloader, local_rank, cfg, earl
 
         #if cnt > int(cfg.val_skip_epochs * (cfg.dataset.pos_count // cfg.batch_size + 1)) and cnt % cfg.val_steps == 0:
 
-        #测试集启动启动启动！！！
+        
         if cnt % cfg.val_steps == 0 and cnt > 8000:
             if first == True:
                 prepare_neighbor_vec_list(cfg, 'val')
                 first = False
             res = val(model, local_rank, cfg)
             model.train()
-            print("--------------------睁大眼睛看好了！-----------------------")
+            print("--------------------come on-----------------------")
             if local_rank == 0:
                 pretty_print(res)
                 wandb.log(res)
-            print("--------------------是骡子还是马啊？？？--------------------")
+            print("--------------------yes or ok?--------------------")
             early_stop, get_better = early_stopping(res['auc'])
 
             if early_stop:
@@ -179,10 +176,10 @@ def val(model, local_rank, cfg):
 
     mode = "val"
     data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
-    # 加载多余的这俩数据
+   
     with open(Path(data_dir[mode]) / "news_outputs_dict.pt", 'rb') as bf:
         outputs_dict = torch.load(bf, map_location=torch.device('cuda:0'))
-        #print("outputs_dict的维度是{}".format(outputs_dict.shape))
+        #print("outputs_dict is{}".format(outputs_dict.shape))
 
     file_path = Path(data_dir[mode]) /"trimmed_news_neighbors_dict.bin"
     with open(file_path, 'rb') as file:
@@ -210,15 +207,15 @@ def val(model, local_rank, cfg):
 
             tasks.append((labels.tolist(), scores))
 
-    #开启线程池，把计算任务分发
+    
     with mp.Pool(processes=cfg.num_workers) as pool:
         results = pool.map(cal_metric, tasks)
     val_auc, val_mrr, val_ndcg5, val_ndcg10 = np.array(results).T
 
     # barrier
-    torch.distributed.barrier()#同步所有的计算节点
+    torch.distributed.barrier()#synchronize
 
-    #平均值
+    #average
     reduced_auc = reduce_mean(torch.tensor(np.nanmean(val_auc)).float().to(local_rank), cfg.gpu_num)
     reduced_mrr = reduce_mean(torch.tensor(np.nanmean(val_mrr)).float().to(local_rank), cfg.gpu_num)
     reduced_ndcg5 = reduce_mean(torch.tensor(np.nanmean(val_ndcg5)).float().to(local_rank), cfg.gpu_num)
@@ -233,7 +230,7 @@ def val(model, local_rank, cfg):
 
     return res
 
-#有助于多进程任务，使用多个gpu同时训练时会遇到
+
 def main_worker(local_rank, cfg):
     # -----------------------------------------Environment Initial
     seed_everything(cfg.seed)
@@ -246,12 +243,12 @@ def main_worker(local_rank, cfg):
     num_training_steps = int(cfg.num_epochs * cfg.dataset.pos_count / (cfg.batch_size * cfg.accumulation_steps))#accumulation的作用：积累梯度，如果=2，那么说明每两个batch更新一次梯度
     num_warmup_steps = int(num_training_steps * cfg.warmup_ratio + 1)#3x236344/32x1 = 22157     #2215
     train_dataloader = load_data(cfg, mode='train', local_rank=local_rank)
-    #dataloader加载完毕
-    model: object = load_model(cfg).to(local_rank) #模型上显卡
+    #dataloader
+    model: object = load_model(cfg).to(local_rank) 
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.optimizer.lr)
 
-    lr_lambda = lambda step: 0.2 if step > num_warmup_steps else step / num_warmup_steps * 0.2 #学习率进行线性增加 ???
-    scheduler = LambdaLR(optimizer, lr_lambda)#调度器，根据上述的学习率增加逻辑
+    lr_lambda = lambda step: 0.2 if step > num_warmup_steps else step / num_warmup_steps * 0.2
+    scheduler = LambdaLR(optimizer, lr_lambda
 
 
 
@@ -261,12 +258,12 @@ def main_worker(local_rank, cfg):
         print(file_path)
         print("--------------------------")
         checkpoint = torch.load(file_path, map_location='cpu')
-        model.load_state_dict(checkpoint['model_state_dict'])  # After Distributed strict取消是因为消融实验呢
+        model.load_state_dict(checkpoint['model_state_dict'])  # After Distributed strict
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank]) #分布式
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
 
-    ######先保存第一个好吧
+    ######
 
     # lsp_state_dict = model.module.local_news_encoder.state_dict()
     # data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
@@ -275,13 +272,13 @@ def main_worker(local_rank, cfg):
     # return 0
 
     ##########
-    optimizer.zero_grad(set_to_none=True) #梯度清0
-    scaler = amp.GradScaler()  #利用混和精度减少GPU计算的手段
+    optimizer.zero_grad(set_to_none=True) 
+    scaler = amp.GradScaler() 
 
     # ------------------------------------------Main Start
-    early_stopping = EarlyStopping(cfg.early_stop_patience) ##模型的性能在5个连续的周期内都没改进，则训练就会停止
+    early_stopping = EarlyStopping(cfg.early_stop_patience)
 
-    #用于跟踪机器学习实验，记录指标，输出，模型权重等
+
     if local_rank == 0:
         wandb.init(config=OmegaConf.to_container(cfg, resolve=True),
                    project=cfg.logger.exp_name, name=cfg.logger.run_name)
@@ -290,8 +287,8 @@ def main_worker(local_rank, cfg):
     num = 0
     # for _ in tqdm(range(1, cfg.num_epochs + 1), desc="Epoch"):
     train(model, optimizer, scaler, scheduler, train_dataloader, local_rank, cfg, early_stopping)
-    #scaler用于梯度缩放
-    #scheduler用于学习率调节
+
+
 
 
     if local_rank == 0:
@@ -300,11 +297,11 @@ def main_worker(local_rank, cfg):
 
 @hydra.main(version_base="1.2", config_path=os.path.join(get_root(), "configs"), config_name="small")
 def main(cfg: DictConfig):
-    seed_everything(cfg.seed)#固定随机种子
+    seed_everything(cfg.seed)
     cfg.gpu_num = torch.cuda.device_count()
     prepare_preprocessed_data(cfg)
-    print("开始训练！")
-    mp.spawn(main_worker, nprocs=cfg.gpu_num, args=(cfg,)) #mp.spawn主要用于多进程处理
+    print("gogogo")
+    mp.spawn(main_worker, nprocs=cfg.gpu_num, args=(cfg,)) 
 
 
 if __name__ == "__main__":
