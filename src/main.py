@@ -136,7 +136,7 @@ def train(model, optimizer, scaler, scheduler, dataloader, local_rank, cfg, earl
         # if cnt > x and beyond:
         #     print("------------------------------------------------")
         #     print(f"Better Result!")
-        #     print("best_auc为：{}，best_loss为：{}".format(best_auc,best_loss))
+        #     print("best_auc ：{}，best_loss ：{}".format(best_auc,best_loss))
         #     print("------------------------------------------------")
         #     if local_rank == 0:
         #         save_model(cfg, model, optimizer, f"{cfg.ml_label}_auc{best_auc}")
