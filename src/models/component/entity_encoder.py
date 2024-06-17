@@ -34,7 +34,7 @@ class EntityEncoder(nn.Module):
         else:
             result = self.atte(entity_input.view(batch_size*num_news, num_entity, self.entity_dim), None).view(batch_size, num_news, self.news_dim)
 
-        return result #新闻的本地实体表示
+        return result
 
 class GlobalEntityEncoder(nn.Module):
     def __init__(self, cfg):
