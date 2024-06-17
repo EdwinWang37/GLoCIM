@@ -6,7 +6,7 @@ entity_size: 5
 
 # dim
 word_emb_dim: 300
-category_emb_dim: 300  #?哪里来的维度啊
+category_emb_dim: 300 
 subcategory_emb_dim: 300
 entity_emb_dim: 100
 
@@ -20,6 +20,5 @@ use_graph: false
 use_entity: false
 num_neighbors: 10
 
-gat_heads: 1 # 2?3?4?不造啊
-
+gat_heads: 1 
 lstm_layers: 1
