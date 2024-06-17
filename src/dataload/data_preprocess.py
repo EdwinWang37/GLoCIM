@@ -48,7 +48,7 @@ def get_sample(all_elements, num_sample):
         return random.sample(all_elements, num_sample)
 
 
-def prepare_distributed_data(cfg, mode="train"): #重新组织排列数据行，并且分发数据到各个gpu上
+def prepare_distributed_data(cfg, mode="train"): 
     data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
     # check
     target_file = os.path.join(data_dir[mode], f"behaviors_np{cfg.npratio}_0.tsv")#npratio == (negative/positive)ratio
@@ -62,7 +62,7 @@ def prepare_distributed_data(cfg, mode="train"): #重新组织排列数据行，
     if mode == 'train':
         with open(behavior_file_path, 'r', encoding='utf-8') as f:
             for line in tqdm(f):
-                iid, uid, time, history, imp = line.strip().split('\t') #制表符：顾名思义，就是制表，对齐上下
+                iid, uid, time, history, imp = line.strip().split('\t') 
                 impressions = [x.split('-') for x in imp.split(' ')]
                 pos, neg = [], []
                 for news_ID, label in impressions:
@@ -73,7 +73,7 @@ def prepare_distributed_data(cfg, mode="train"): #重新组织排列数据行，
                 if len(pos) == 0 or len(neg) == 0:
                     continue
                 for pos_id in pos:
-                    neg_candidate = get_sample(neg, cfg.npratio) #4个负样本 npratio -> negative to positive ratio
+                    neg_candidate = get_sample(neg, cfg.npratio) # npratio -> negative to positive ratio
                     neg_str = ' '.join(neg_candidate)
                     new_line = '\t'.join([iid, uid, time, history, pos_id, neg_str]) + '\n' # 1 u222 1-1-1 n11 n22 n23 n1111 (n12 n21 n33 n21 n21) ......
                     behaviors.append(new_line)
@@ -81,12 +81,12 @@ def prepare_distributed_data(cfg, mode="train"): #重新组织排列数据行，
 
         behaviors_per_file = [[] for _ in range(cfg.gpu_num)] #[[] for _ in range()]
         for i, line in enumerate(behaviors):
-            behaviors_per_file[i % cfg.gpu_num].append(line)#把behavior分成了好几份，为接下来分布式训练做准备 1应该换成 cfg.gpu_num
+            behaviors_per_file[i % cfg.gpu_num].append(line)#
 
     elif mode in ['val', 'test']:
         with open(behavior_file_path, 'r', encoding='utf-8') as f:
             for line in tqdm(f):
-                iid, uid, time, history, imp = line.strip().split('\t')  # 制表符：顾名思义，就是制表，对齐上下
+                iid, uid, time, history, imp = line.strip().split('\t')  
                 impressions = [x.split('-') for x in imp.split(' ')]
                 pos, neg = [], []
                 for news_ID, label in impressions:
@@ -97,7 +97,7 @@ def prepare_distributed_data(cfg, mode="train"): #重新组织排列数据行，
                 if len(pos) == 0 or len(neg) == 0:
                     continue
                 for pos_id in pos:
-                    neg_candidate = get_sample(neg, cfg.npratio)  # 4个负样本 npratio -> negative to positive ratio
+                    neg_candidate = get_sample(neg, cfg.npratio) 
                     neg_str = ' '.join(neg_candidate)
                     new_line = '\t'.join([iid, uid, time, history, pos_id,
                                           neg_str]) + '\n'  # 1 u222 1-1-1 n11 n22 n23 n1111 (n12 n21 n33 n21 n21) ......
@@ -106,7 +106,7 @@ def prepare_distributed_data(cfg, mode="train"): #重新组织排列数据行，
 
         behaviors_per_file = [[] for _ in range(cfg.gpu_num)]  # [[] for _ in range()]
         for i, line in enumerate(behaviors):
-            behaviors_per_file[i % cfg.gpu_num].append(line)  # 把behavior分成了好几份，为接下来分布式训练做准备 1应该换成 cfg.gpu_num
+            behaviors_per_file[i % cfg.gpu_num].append(line)  
 
     print(f'[{mode}]Writing files...')
     for i in range(cfg.gpu_num):
@@ -114,7 +114,7 @@ def prepare_distributed_data(cfg, mode="train"): #重新组织排列数据行，
         with open(processed_file_path, 'w') as f:
             f.writelines(behaviors_per_file[i])
 
-    return len(behaviors) #返回行为文件的条数
+    return len(behaviors)
 
 
 def read_raw_news(cfg, file_path, mode='train'):
@@ -133,8 +133,7 @@ def read_raw_news(cfg, file_path, mode='train'):
     """
     import nltk
     #nltk.download('punkt')
-    #1.文本处理和清洁（分词，句子分割，词干提取）
-    #2.用于训练和应用各种NLP相关的机器学习模型
+ 
     data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
 
     if mode in ['val', 'test']:
@@ -156,14 +155,13 @@ def read_raw_news(cfg, file_path, mode='train'):
             # split one line
             split_line = line.strip('\n').split('\t')
             news_id, category, subcategory, title, abstract, url, t_entity_str, _ = split_line
-            update_dict(target_dict=news_dict, key=news_id) #创建news索引
+            update_dict(target_dict=news_dict, key=news_id) 
 
             # Entity
             if t_entity_str:
-                entity_ids = [obj["WikidataId"] for obj in json.loads(t_entity_str)] #loads先将json数据转化成字典
+                entity_ids = [obj["WikidataId"] for obj in json.loads(t_entity_str)] 
                 for entity_id in entity_ids:
-                    update_dict(target_dict=entity_dict, key=entity_id)#原来的列表生成式没用啊，所以改成现在这样吧，创建实体索引？？？？？？？？？？？？？？？？？？？？？？？？？？？？？真的没用吗为什么要改呢？？？？？？？？？？？？？？？？？？？？？？？
-            else:
+                    update_dict(target_dict=entity_dict, key=entity_id)
                 entity_ids = t_entity_str
             
             tokens = word_tokenize(title.lower(), language=cfg.dataset.dataset_lang)
@@ -206,13 +204,13 @@ def read_parsed_news(cfg, news, news_dict,
         # entity
         entity_index = [entity_dict[entity_id] if entity_id in entity_dict else 0 for entity_id in _entity_ids]
         news_entity[_news_index, :min(cfg.model.entity_size, len(_entity_ids))] = entity_index[:cfg.model.entity_size]
-        ##########################3改！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
+       
         for _word_id in range(min(cfg.model.title_size, len(_title))):
             if _title[_word_id] in word_dict:
                 news_title[_news_index, _word_id] = word_dict[_title[_word_id]]
 
     return news_title, news_entity, news_category, news_subcategory, news_index
-#news_input(新闻题目（30），新闻实体（5），新闻种类（1），新闻子种类（1），新闻索引（1）)
+#news_input
 
 
 def prepare_preprocess_bin(cfg, mode):
@@ -225,7 +223,7 @@ def prepare_preprocess_bin(cfg, mode):
             cfg=cfg,
             mode=mode,
         )
-        #print("N55528的索引是：")
+        #print("N55528 index is：")
         #print(nltk_news_dict["N55528"])
         #return news, news_dict, category_dict, subcategory_dict, entity_dict, word_dict
         if mode == "train":
@@ -242,7 +240,7 @@ def prepare_preprocess_bin(cfg, mode):
         pickle.dump(nltk_news_dict, open(Path(data_dir[mode]) / "news_dict.bin", "wb"))
         nltk_news_features = read_parsed_news(cfg, nltk_news, nltk_news_dict,
                                               category_dict, subcategory_dict, entity_dict,
-                                              word_dict)#word_dict是分词
+                                              word_dict)#word_dict
         news_input = np.concatenate([x for x in nltk_news_features], axis=1)
         pickle.dump(news_input, open(Path(data_dir[mode]) / "nltk_token_news.bin", "wb"))
         print("Glove token preprocess finish.")
@@ -271,7 +269,7 @@ def prepare_news_graph(cfg, mode='train'):
 
     news_dict = pickle.load(open(Path(data_dir[mode]) / "news_dict.bin", "rb"))
     nltk_token_news = pickle.load(open(Path(data_dir[mode]) / "nltk_token_news.bin", "rb"))
-    print("nltk_token_news的维度是多少呢？")
+    print("nltk_token_news d:")
     print(nltk_token_news.shape)
 
 
@@ -281,7 +279,7 @@ def prepare_news_graph(cfg, mode='train'):
         edge_list, user_set = [], set()
         num_line = len(open(behavior_path, encoding='utf-8').readlines())
         with open(behavior_path, 'r', encoding='utf-8') as f:
-            for line in tqdm(f, total=num_line, desc=f"[{mode}] Processing behaviors news to News Graph"): #tqdm是一个进度条
+            for line in tqdm(f, total=num_line, desc=f"[{mode}] Processing behaviors news to News Graph"):
                 line = line.strip().split('\t')
 
                 # check duplicate user
@@ -295,7 +293,7 @@ def prepare_news_graph(cfg, mode='train'):
                 history = line[3].split()
                 if len(history) > 1:
                     long_edge = [news_dict[news_id] for news_id in history]
-                    edge_list.append(long_edge)#邻居的边的索引的集合
+                    edge_list.append(long_edge)
 
         # edge count
         node_feat = nltk_token_news
@@ -305,11 +303,11 @@ def prepare_news_graph(cfg, mode='train'):
         short_edges = []
         for edge in tqdm(edge_list, total=len(edge_list), desc=f"Processing news edge list"):
             # Trajectory Graph
-            if cfg.model.use_graph_type == 0:#时序点击图
+            if cfg.model.use_graph_type == 0:
                 for i in range(len(edge) - 1):
                     short_edges.append((edge[i], edge[i + 1]))
                     # short_edges.append((edge[i + 1], edge[i]))
-            elif cfg.model.use_graph_type == 1:#全连接图
+            elif cfg.model.use_graph_type == 1:
                 # Co-occurence Graph
                 for i in range(len(edge) - 1):
                     for j in range(i+1, len(edge)):
@@ -318,17 +316,17 @@ def prepare_news_graph(cfg, mode='train'):
             else:
                 assert False, "Wrong"
 
-        edge_weights = Counter(short_edges) #用于确定边的数量，以便计算频率
+        edge_weights = Counter(short_edges)
         unique_edges = list(edge_weights.keys())
 
         edge_index = torch.tensor(list(zip(*unique_edges)), dtype=torch.long)
         edge_attr = torch.tensor([edge_weights[edge] for edge in unique_edges], dtype=torch.long)
 
-        data = Data(x=torch.from_numpy(node_feat),#节点已经包含了很多信息，有title，entity，category和subcategory，index等
+        data = Data(x=torch.from_numpy(node_feat),
                 edge_index=edge_index, edge_attr=edge_attr,
-                num_nodes=num_nodes)# Data是PyTorch Geometric 中的类，专门用于处理图数据
+                num_nodes=num_nodes)
     
-        torch.save(data, target_path)#存到了nltk_news_graph.pt中去了
+        torch.save(data, target_path)
         print(data)
         print(f"[{mode}] Finish News Graph Construction, \nGraph Path: {target_path} \nGraph Info: {data}")
     
@@ -365,7 +363,7 @@ def prepare_neighbor_list(cfg, mode='train', target='news'):
         graph_data = torch.load(target_graph_path)
         category_info = graph_data.x[:, -3]
         news_index = graph_data.x[:, -1]
-        #将tensor转化为list，方便利用pickle转化为二进制数据
+       
         news_index = news_index.tolist()
         category_info = category_info.tolist()
         category_dict = dict(zip(news_index, category_info))
@@ -396,27 +394,7 @@ def prepare_neighbor_list(cfg, mode='train', target='news'):
 
     else:
         assert False, f"[{mode}] Wrong target {target} "
-    #在处理大量数据或对性能有较高要求的情况下，选择二进制格式通常更有效。这就是为什么在机器学习模型的存储、大数据处理和高性能计算中，二进制格式非常普遍的原因。
-    edge_index = graph_data.edge_index
-    edge_attr = graph_data.edge_attr
-    # print("前10个的图数据为：")
-    # print(graph_data.x[0,0])
-    # print("图维度是多少呢")
-    # print(graph_data.size)
-    # print("类别信息为：")
-    # print(category_info)
-    # print("新闻索引信息为：")
-    # print(news_index)
-    # print("新闻类别信息为：")
-    # print(category_info)
-    # print(category_info.size)
-
-
-    # tensor = torch.load('/home/luoyf/GLORY/category_info.pt')
-    # print(tensor)
-
-
-    # print(category_dict)
+   
 
 
 
@@ -424,32 +402,28 @@ def prepare_neighbor_list(cfg, mode='train', target='news'):
     #print(category_dict[1])
 
     if cfg.model.directed is False:
-        edge_index, edge_attr = to_undirected(edge_index, edge_attr) #有向图 -> 无向图
+        edge_index, edge_attr = to_undirected(edge_index, edge_attr) 
 
     neighbor_dict = collections.defaultdict(list)
     neighbor_weights_dict = collections.defaultdict(list)
     
     # for each node (except 0)
     for i in tqdm(range(1, len(target_dict) + 1)):
-        #print(i)#tqdm怎么吧。。。print有点太简单了吧
-        dst_edges = torch.where(edge_index[1] == i)[0]          # i as destination,找出所有以i为目标节点的初始节点
+       
+        dst_edges = torch.where(edge_index[1] == i)[0]          # i as destination
         neighbor_weights = edge_attr[dst_edges]
         neighbor_nodes = edge_index[0][dst_edges]               # neighbors as src
         sorted_weights, indices = torch.sort(neighbor_weights, descending=True)
-        neighbor_dict[i] = neighbor_nodes[indices].tolist()#将邻居按权重降序排列
-        neighbor_weights_dict[i] = sorted_weights.tolist()#将权重对应排号
+        neighbor_dict[i] = neighbor_nodes[indices].tolist()
+        neighbor_weights_dict[i] = sorted_weights.tolist()
 
-    '''edge_index是一个在图数据结构中常用来表示图中所有边的张量（Tensor）。在这段代码中，edge_index是一个维度为2xN的张量，其中N是图中边的数量。
-    这个张量的两行分别代表边的源节点和目标节点。每一列的两个元素分别表示一条边的起点（源节点）和终点（目标节点）。'''
+    '
 
-    print("over!!!!")
+
     pickle.dump(neighbor_dict, open(neighbor_dict_path, "wb"))
-    print("neighbor_dict的维度是{}".format(len(neighbor_dict)))
-    print("neighbor_dict[2]的值是{}".format(neighbor_dict[2]))
-    print("neighbor_dict[3]的值是{}".format(neighbor_dict[3]))
-
+  
     pickle.dump(neighbor_weights_dict, open(weights_dict_path, "wb"))
-    print("neighbor_weights_dict的维度是{}".format(len(neighbor_weights_dict)))
+   
 
 
     if target == 'news':
@@ -528,20 +502,20 @@ def prepare_entity_graph(cfg, mode='train'):
         torch.save(data, target_path)
         print(f"[{mode}] Finish Entity Graph Construction, \n Graph Path: {target_path} \nGraph Info: {data}")
 
-def prepare_neighbor_vec_list(cfg, mode = "train"):#一个问题是：切分前三个，但是有的邻居不满足三个邻居节点，这个想一下哈；
+def prepare_neighbor_vec_list(cfg, mode = "train"):
     #
     with torch.no_grad():
-        #处理邻居字典，准备数据输入
+       
         data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
 
         news_neighbors_dict = pickle.load(open(Path(data_dir[mode]) / "news_neighbor_dict.bin", "rb"))
         trimmed_news_neighbors_dict = {}
-        #print("news_neighbors_dict的维度是：{}".format(len(news_neighbors_dict)))
-        #print("news_neighbors_dict[1]的值是：{}".format(news_neighbors_dict[1]))
+        #print("news_neighbors_dict d：{}".format(len(news_neighbors_dict)))
+        #print("news_neighbors_dict[1] is：{}".format(news_neighbors_dict[1]))
         for key, neighbors_list in news_neighbors_dict.items():
-            # 前3元素字典
+            
             trimmed_neighbors = neighbors_list[:3]
-            # 将裁剪后的列表存储在新的字典中
+            
             trimmed_news_neighbors_dict[key] = trimmed_neighbors
 
 
@@ -551,68 +525,62 @@ def prepare_neighbor_vec_list(cfg, mode = "train"):#一个问题是：切分前�
 
         news_input = pickle.load(open(Path(data_dir[mode]) / "nltk_token_news.bin", "rb"))
 
-        news_input = torch.tensor(news_input, dtype=torch.float32)############
-        #print("news_input[10809,:]的值为{}".format(news_input[10809,:]))
+        news_input = torch.tensor(news_input, dtype=torch.float32)
+      
 
 
-        #引入模型
         word_dict = pickle.load(open(Path(cfg.dataset.train_dir) / "word_dict.bin", "rb"))
         glove_emb = load_pretrain_emb(cfg.path.glove_path, word_dict, cfg.model.word_emb_dim)
         pre_local_news_encoder = PreNewsEncoder(cfg, glove_emb)
-        #print("预处理模型加载完毕1")
+
 
         state_dict = torch.load(Path(data_dir["train"]) / "news_local_news_encoder.pth")
 
-        # 使用状态字典更新模块的参数
+    
         pre_local_news_encoder.load_state_dict(state_dict)
-        #print("预处理模型加载完毕2")
+   
 
         pre_local_news_encoder.eval()
-        #print("预处理模型加载完毕3")
+      
 
         outputs_dict = {}
-        #开练吧！
+     
         for key, neighbors_list in news_neighbors_dict.items():
-            # 确保每个neighbors_list有3个元素，不足3个用全0向量索引（这里假设用-1表示）来填充
+            
             trimmed_neighbors = neighbors_list[:3] + [-1] * (3 - len(neighbors_list[:3]))
             trimmed_news_neighbors_dict[key] = trimmed_neighbors
         for key, neighbors in tqdm(trimmed_news_neighbors_dict.items(), desc='正在进行邻居节点预训练'):
             outputs = []
             for neighbor_idx in neighbors:
                 if neighbor_idx == -1:
-                    # 使用与news_input中向量相同维度的零向量
+                   
                     output = torch.zeros(400)
                 else:
-                    # 提取相应的特征
+                   
                     neighbor_features = news_input[neighbor_idx]
                     output = pre_local_news_encoder(neighbor_features).squeeze()
                 outputs.append(output)
             outputs_dict[key] = torch.stack(outputs)
         tensors_list = list(outputs_dict.values())
         if tensors_list:
-            # 在第一个维度上堆叠，结果张量的形状将是 [N, 3, 400]，其中N是键的数量
+           
             stacked_tensor = torch.stack(tensors_list)
         else:
-            print("没有数据可进行堆叠。")
+            print("no data leap")
 
-        # 保存整个字典为一个单一的文件
+       
         torch.save(stacked_tensor, Path(data_dir[mode]) / "news_outputs_dict.pt")
-        print("处理完毕！")
+        print("process ok ")
 def prepare_preprocessed_data(cfg):
-    '''
-    1.分布式数据
-    2.二进制文件（类别字典，子类别字典，word字典，实体字典，nltk news，新闻字典，nltk_token_news）
-    3.准备新闻图和邻居列表
-    4.准备实体图和邻居列表
-    '''
-    prepare_distributed_data(cfg, "train")#准备分布式的数据
+  
+    prepare_distributed_data(cfg, "train")
     prepare_distributed_data(cfg, "val")
 
-    prepare_preprocess_bin(cfg, "train")#准备预处理的二进制文件
+    prepare_preprocess_bin(cfg, "train")
     prepare_preprocess_bin(cfg, "val")
     prepare_preprocess_bin(cfg, "test")
 
-    prepare_news_graph(cfg, 'train')#新闻图的构建
+    prepare_news_graph(cfg, 'train')
     prepare_news_graph(cfg, 'val')
     prepare_news_graph(cfg, 'test')
 
@@ -620,7 +588,7 @@ def prepare_preprocessed_data(cfg):
     prepare_neighbor_list(cfg, 'val', 'news')
     prepare_neighbor_list(cfg, 'test', 'news')
 
-    #准备需要的邻居向量
+   
     #prepare_neighbor_vec_list(cfg, 'train')
     #print("xxxxxxxxx")
     #prepare_neighbor_vec_list(cfg, 'val')
@@ -635,7 +603,7 @@ def prepare_preprocessed_data(cfg):
     prepare_neighbor_list(cfg, 'val', 'entity')
     prepare_neighbor_list(cfg, 'test', 'entity')
 
-    # entity端的筛选向量，还没弄呢，先占个位置
+   
     # prepare_neighbor_list(cfg, 'train', 'entity')
     # prepare_neighbor_list(cfg, 'val', 'entity')
     # prepare_neighbor_list(cfg, 'test', 'entity')
