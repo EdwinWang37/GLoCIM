@@ -131,7 +131,7 @@ def train(model, optimizer, scaler, scheduler, dataloader, local_rank, cfg, earl
             sum_loss.zero_()
             sum_auc.zero_()
 
-        # #保存训练集
+        
         # x = cfg.dataset.pos_count // cfg.batch_size + 1
         # if cnt > x and beyond:
         #     print("------------------------------------------------")
