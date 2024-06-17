@@ -13,5 +13,4 @@ hydra-core
 torch-scatter
 
 
-python version
 
