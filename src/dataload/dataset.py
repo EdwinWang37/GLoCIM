@@ -8,18 +8,6 @@ from torch_geometric.utils import subgraph
 import numpy as np
 from models.base.function import *
 
-'''
-IterableDataset:主要用于大规模数据集，不至于无法一次性完整加载到内存时，可以分批读取数据
-
-torch.nn.functional：torch.nn.functional 是 PyTorch 中的一个模块，
-它提供了一系列用于构建神经网络的函数。与 torch.nn 模块中的类不同，torch.nn.functional（通常简称为 F）提供的是函数式接口。
-这意味着这些函数直接操作输入数据并返回结果，而不是作为对象的方法被调用。这些函数涵盖了激活函数、损失函数、池化操作等多种神经网络构建块。
-
-torch_geometric:orch_geometric.data 是 PyTorch Geometric (PyG) 库的一部分，这是一个用于图神经网络（GNNs）的 PyTorch 扩展。
-在 torch_geometric.data 模块中，主要包含两个关键类：Data 和 Batch。
-
-torch_geometric.utils import subgraph:用于从一个大图中提取子图。
-'''
 
 
 
@@ -34,10 +22,10 @@ class TrainDataset(IterableDataset):
         self.local_rank = local_rank
         self.world_size = cfg.gpu_num
 
-    def trans_to_nindex(self, nids):#nids是含新闻id的列表，这个函数是获取新闻索引的一个子集
+    def trans_to_nindex(self, nids):
         return [self.news_index[i] if i in self.news_index else 0 for i in nids]
 
-    #是将一个给定的序列 x 填充到一个固定的长度
+  
     def pad_to_fix_len(self, x, fix_length, padding_front=True, padding_value=0):
         if padding_front:
             pad_x = [padding_value] * (fix_length - len(x)) + x[-fix_length:]
@@ -55,17 +43,17 @@ class TrainDataset(IterableDataset):
         sess_neg = line[5].split()
 
         clicked_index, clicked_mask = self.pad_to_fix_len(self.trans_to_nindex(click_id), self.cfg.model.his_size)
-        clicked_input = self.news_input[clicked_index] #根据索引获取新闻信息
+        clicked_input = self.news_input[clicked_index]
 
         label = 0
         sample_news = self.trans_to_nindex(sess_pos + sess_neg)
         candidate_input = self.news_input[sample_news]
 
-        return clicked_input, clicked_mask, candidate_input, label#label有啥用啊？
+        return clicked_input, clicked_mask, candidate_input, label
 
-    def __iter__(self):#IterableDataset的典型用法，适用于数据集太大以至于无法一次性加载到内存
+    def __iter__(self):
         file_iter = open(self.filename)
-        return map(self.line_mapper, file_iter)#map() 是一个内置函数，用于对序列（如列表、元组等）中的每个元素应用一个给定的函数，并返回一个包含结果的迭代器
+        return map(self.line_mapper, file_iter)
     
     
 class TrainGraphDataset(TrainDataset):
@@ -74,7 +62,7 @@ class TrainGraphDataset(TrainDataset):
         self.neighbor_dict = neighbor_dict
         self.news_graph = news_graph.to(local_rank, non_blocking=True)
         #to(local_rank, non_blocking=True)
-        #这是 PyTorch 中的一个方法，用于将数据（如张量或模型）移动到不同的设备上，例如从 CPU 移动到 GPU。
+        
         self.batch_size = cfg.batch_size / cfg.gpu_num
         self.entity_neighbors = entity_neighbors
 
@@ -88,21 +76,21 @@ class TrainGraphDataset(TrainDataset):
 
 
         line = line.strip().split('\t')
-        click_id = line[3].split()[-self.cfg.model.his_size:]#小于等于50条历史点击数据哈，提取最后50个数据
-        #print("click_id是{}".format(click_id))
+        click_id = line[3].split()[-self.cfg.model.his_size:]
+        #print("click_id is{}".format(click_id))
         sess_pos = line[4].split()
-        #print("sess_pos是{}".format(sess_pos))
+        #print("sess_pos is{}".format(sess_pos))
         sess_neg = line[5].split()
 
         # ------------------ Clicked News ----------------------
         # ------------------ News Subgraph ---------------------
 
-        top_k = len(click_id) #第一跳的数量
+        top_k = len(click_id) 
         click_idx = self.trans_to_nindex(click_id)
         top_click_idx = list(click_idx)
         source_idx = click_idx
 
-        #引用和复制的区别！对其中一个的改变会影响另一个的变化
+        
 
 
 
@@ -126,51 +114,41 @@ class TrainGraphDataset(TrainDataset):
 
         #long chain selection,first start with one long chain
 
-        #big issues!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!要体现出来吧，这种筛选性质，要不原来太随意了吧，这里设计一个筛选器！！！！
+  
         # one_long_chain = []
         #
         # for news_idx in top_click_idx:
         #     long_chain = [news_idx]
         #     count = 1
-        #
-        #     # 初始化当前索引为news_idx
         #     current_idx = news_idx
-        #
-        #     # 循环直到没有更多邻居或达到链的最大长度
         #     while current_idx in self.neighbor_dict and self.neighbor_dict[current_idx]:
-        #         # 获取当前节点的邻居列表的第一个邻居
-        #         new = self.neighbor_dict[current_idx][0]  # 假设邻居列表至少有一个元素
+        #        
+        #         new = self.neighbor_dict[current_idx][0]  
         #         long_chain.append(new)
         #         count += 1
-        #         current_idx = new  # 更新当前索引为新邻居
-        #         if count == 10:  # 如果链长度达到10，停止循环
+        #         current_idx = new  
+        #         if count == 10:  
         #             break
         #     one_long_chain.append(long_chain)
 
         # device = self.news_graph.x.device
         # one_long_chain = torch.tensor(one_long_chain, device = device)
-        # print("之前的")
         # print(one_long_chain.size())
         # if one_long_chain.numel() == 0:
         #
         #     print(line)
         #
         # one_long_chain = pad_tensor_to_shape(one_long_chain)
-        # print("之后的")
         # print(one_long_chain.size())
 
 
 
-        #1.category不同的要mask
-        #2.一下特别的临界值，比如说没有10条长链或者说没有50条阅读记录该怎么处理呢
-
 
         sub_news_graph, mapping_idx = self.build_subgraph(click_idx, top_k, sum_num_news)
 
-        #mapping是子图中的点击节点到原图的映射，方便后续在不同图的表示中追踪点击节点的身份，在后续的分析和处理中有用
-        padded_maping_idx = F.pad(mapping_idx, (self.cfg.model.his_size-len(mapping_idx), 0), "constant", -1) #左边填充若干个-1
-        #从左边开始填充
 
+        padded_maping_idx = F.pad(mapping_idx, (self.cfg.model.his_size-len(mapping_idx), 0), "constant", -1) 
+ 
         
         # ------------------ Candidate News ---------------------
         label = 0
@@ -212,13 +190,10 @@ class TrainGraphDataset(TrainDataset):
         subemb = self.news_graph.x[unique_subset]
 
         sub_edge_index, sub_edge_attr = subgraph(unique_subset, self.news_graph.edge_index, self.news_graph.edge_attr, relabel_nodes=True, num_nodes=self.news_graph.num_nodes)
-        #subgraph 的主要功能是根据 subset 中的节点索引，从原始图中提取那些节点以及它们之间的边，从而创建一个新的子图。如果指定了 relabel_nodes=True，则在子图中，节点的索引会被重新标记，使得子图可以作为一个独立的图进行处理。
-
-
+        
         sub_news_graph = Data(x=subemb, edge_index=sub_edge_index, edge_attr=sub_edge_attr)
-        #这样的设计允许在批处理多个子图时保持节点索引的唯一性和一致性，这对于后续的图神经网络处理是非常重要的。例如，如果我们要将多个这样的子图合并成一个更大的批处理图，那么每个节点的唯一索引就是必需的，以确保正确地关联节点特征和边。
-
-        return sub_news_graph, unique_mapping[:k]+sum_num_nodes #确保每个子图上的节点都具有唯一的索引
+        
+        return sub_news_graph, unique_mapping[:k]+sum_num_nodes 
     
     def __iter__(self):
         while True:
@@ -255,7 +230,7 @@ class TrainGraphDataset(TrainDataset):
 
 
                         batch = Batch.from_data_list(clicked_graphs)
-                        #将多个图数据转换成一个批量图数据，将多个图结合成一个大的批处理图
+                     
                         candidates = torch.stack(candidates)
                         mappings = torch.stack(mappings)
                         candidate_entity_list = torch.stack(candidate_entity_list)
@@ -263,12 +238,12 @@ class TrainGraphDataset(TrainDataset):
 
                         labels = torch.tensor(labels, dtype=torch.long)
                         yield batch, mappings, candidates, candidate_entity_list, entity_mask_list, labels
-                        #当处理大量数据时，使用 yield 可以节省大量内存。与一次性返回整个列表相比，生成器一次只生成并返回序列中的一个元素
+                        
                         clicked_graphs, mappings ,candidates, labels, candidate_entity_list, entity_mask_list,  = [], [], [], [], [], [],
                         sum_num_news = 0
 
-                if (len(clicked_graphs) > 0):#针对最后一次的处理
-                    batch = Batch.from_data_list(clicked_graphs) #实际上还是并行的图，不过是放在一起进行批处理，就不需要进行遍历了，但是边的索引需要改变一下
+                if (len(clicked_graphs) > 0):
+                    batch = Batch.from_data_list(clicked_graphs)
                     candidates = torch.stack(candidates)
                     mappings = torch.stack(mappings)
                     candidate_entity_list = torch.stack(candidate_entity_list)
@@ -276,7 +251,7 @@ class TrainGraphDataset(TrainDataset):
                     labels = torch.tensor(labels, dtype=torch.long)
 
                     yield batch, mappings, candidates, candidate_entity_list, entity_mask_list, labels
-                    f.seek(0) #把文件的读写位置移动到开头
+                    f.seek(0) 
 
 
 class ValidGraphDataset(TrainGraphDataset):
@@ -290,15 +265,15 @@ class ValidGraphDataset(TrainGraphDataset):
 
         line = line.strip().split('\t')
         click_id = line[3].split()[-self.cfg.model.his_size:]
-        #print("click_id的值为{}".format(click_id))
+        #print("click_id is{}".format(click_id))
 
-        # 假设 click_id 是一个列表，你想根据每个ID获取内容
+       
         click_history = []
         for id in click_id:
             if id in self.news_dict:
                 click_history.append(self.news_dict[id])
             else:
-                click_history.append(None)  # 或者使用其他默认值
+                click_history.append(None)  
 
         click_idx = self.trans_to_nindex(click_id)
         clicked_entity = self.news_entity[click_idx]
