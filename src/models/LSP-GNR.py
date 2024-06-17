@@ -114,14 +114,14 @@ class LSP-GNR(nn.Module):
 
         batch_size, num_clicked, token_dim = mapping_idx.shape[0], mapping_idx.shape[1], candidate_news.shape[-1]
         clicked_entity = subgraph.x[mapping_idx, -8:-3]  #[16, 50, 5]
-        click_history = subgraph.x[mapping_idx, -1] #不对[16, 50]
+        click_history = subgraph.x[mapping_idx, -1] #[16, 50]
 
 
         x_flatten = subgraph.x.view(1, -1, token_dim)
         x_encoded = self.local_news_encoder(x_flatten).view(-1, self.news_dim)#[batch, news, news_dim] 32, 50, 400 -> 32 * 50, 400
 
 
-        #短链
+        #neighbor
         global_short_emb = self.global_news_short_encoder(x_encoded, subgraph.edge_index)
 
         clicked_origin_emb = x_encoded[mapping_idx, :].masked_fill(~mask.unsqueeze(-1), 0).view(batch_size, num_clicked, self.news_dim)
@@ -129,17 +129,17 @@ class LSP-GNR(nn.Module):
 
         clicked_short_graph_emb = global_short_emb[mapping_idx, :].masked_fill(~mask.unsqueeze(-1), 0).view(batch_size, num_clicked, self.news_dim)
 
-        # 长链
+        # long-chain
 
-        global_long_emb  = self.global_news_long_encoder(clicked_origin_emb, click_history, outputs_dict, trimmed_news_neighbors_dict)  # [16,50,400] 16记录，50条阅读记录，
-
-
+        global_long_emb  = self.global_news_long_encoder(clicked_origin_emb, click_history, outputs_dict, trimmed_news_neighbors_dict)  # [16,50,400] 
 
 
 
-        click_fuse_vec = self.feature_gate(clicked_short_graph_emb, global_long_emb)  # 输出也将是[16, 50, 400]
 
-        # -------------消融实验1-----------------------------
+
+        click_fuse_vec = self.feature_gate(clicked_short_graph_emb, global_long_emb)  #[16, 50, 400]
+
+        # -------------ablation1-----------------------------
         #click_fuse_vec = clicked_short_graph_emb + global_long_emb
         #---------------------------------------------------
 
@@ -150,7 +150,7 @@ class LSP-GNR(nn.Module):
         else:
             clicked_entity = None
 
-        clicked_total_emb = self.click_encoder(clicked_origin_emb, click_fuse_vec, clicked_entity)#局部新闻+全局+局部实体
+        clicked_total_emb = self.click_encoder(clicked_origin_emb, click_fuse_vec, clicked_entity)#local+global
         user_emb = self.user_encoder(clicked_total_emb, mask)
         # ----------------------------------------- Candidate------------------------------------
         cand_title_emb = self.local_news_encoder(candidate_news)                                      # [8, 5, 400]
@@ -174,9 +174,8 @@ class LSP-GNR(nn.Module):
         return loss, score
 
     def validation_process(self, subgraph, mappings, clicked_entity, candidate_emb, candidate_entity, entity_mask, outputs_dict, trimmed_news_neighbors_dict,click_history):
-        #无需label，因为不用计算损失哈
-
-        batch_size, num_news, news_dim = 1 , len(mappings) , candidate_emb.shape[-1] #mappings这是最主要的区别吧
+        
+        batch_size, num_news, news_dim = 1 , len(mappings) , candidate_emb.shape[-1] #mappings
 
 
 
@@ -186,36 +185,36 @@ class LSP-GNR(nn.Module):
         title_graph_emb = self.global_news_short_encoder(subgraph.x, subgraph.edge_index)
 
         clicked_origin_emb = subgraph.x[mappings, :].view(batch_size, num_news, news_dim)
-        #1，15，400 点击的原来的新闻向量
+        #1，15，400 
 
         click_history = torch.tensor(click_history)
 
 
-        click_history = click_history.unsqueeze(0) #点击历史的索引（1，50）
-        ##print("click_history的形状是：{}".format(click_history.shape))
-        #print("click_history是：{}".format(click_history))
+        click_history = click_history.unsqueeze(0) #（1，50）
+        ##print("click_history is：{}".format(click_history.shape))
+        #print("click_history is：{}".format(click_history))
 
-        #print("candidate_emb的维度{}".format(candidate_emb.shape))#22,400
+        #print("candidate_emb d:{}".format(candidate_emb.shape))#22,400
         #clicked_origin_emb = subgraph.x[mappings, :].masked_fill(~mask.unsqueeze(-1), 0).view(batch_size, num_clicked, self.news_dim)
 
         global_long_emb = self.global_news_long_encoder(clicked_origin_emb, click_history, outputs_dict,
                                                         trimmed_news_neighbors_dict) # 1,50,400???
 
         truncated_emb = global_long_emb[:, :num_news, :]
-        #1.验证集变回原来 ok了已经
-        #2.click_history怎么弄出来的呢？
+       
+   
 
-        #print("title_graph_emb[mappings, :]是{}".format(title_graph_emb[mappings, :].shape))
+        #print("title_graph_emb[mappings, :] is{}".format(title_graph_emb[mappings, :].shape))
         clicked_short_graph_emb = title_graph_emb[mappings, :].view(batch_size, num_news, news_dim) #【1，15，400】
-        #print("clicked_short_graph_emb是{}".format(clicked_short_graph_emb))
-        #print("clicked_short_graph_emb的形状是{}".format(clicked_short_graph_emb.shape))
-        #print("global_long_emb是{}".format(global_long_emb))
-        #print("global_long_emb的形状是{}".format(global_long_emb.shape))
+        #print("clicked_short_graph_emb is{}".format(clicked_short_graph_emb))
+        #print("clicked_short_graph_emb is{}".format(clicked_short_graph_emb.shape))
+        #print("global_long_emb is{}".format(global_long_emb))
+        #print("global_long_emb is{}".format(global_long_emb.shape))
 
 
 
         click_fuse_vec = self.feature_gate(clicked_short_graph_emb, truncated_emb) #1，15，400 和 1,50,400
-        #------------------消融实验1-----------
+        #------------------ab1-----------
         #click_fuse_vec = clicked_short_graph_emb + truncated_emb
         #-----------------------------------------------------------
 
@@ -247,8 +246,8 @@ class LSP-GNR(nn.Module):
 
         cand_final_emb = self.candidate_encoder(candidate_emb.unsqueeze(0), cand_origin_entity_emb,
                                                 cand_neighbor_entity_emb)
-        #print("cand_final_emb的维度是{}".format(cand_final_emb.shape)) ### [1,22,400]
-        #print("cand_final_emb的值为{}".format(cand_final_emb))
+        #print("cand_final_emb is{}".format(cand_final_emb.shape)) ### [1,22,400]
+        #print("cand_final_emb is{}".format(cand_final_emb))
 
         # ---------------------------------------------------------------------------------------
         # ----------------------------------------- Score ------------------------------------
