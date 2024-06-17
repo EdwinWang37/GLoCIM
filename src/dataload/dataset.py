@@ -176,7 +176,6 @@ class TrainGraphDataset(TrainDataset):
 
         return sub_news_graph, padded_maping_idx, candidate_input, candidate_entity, entity_mask, label, \
                sum_num_news+sub_news_graph.num_nodes
-        #如果在子图中看到一个节点，可以通过 mapping_idx 知道它在原始图中的哪个位置。
 
     def build_subgraph(self, subset, k, sum_num_nodes):
         device = self.news_graph.x.device
