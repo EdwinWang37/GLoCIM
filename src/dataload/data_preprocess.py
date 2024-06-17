@@ -549,7 +549,7 @@ def prepare_neighbor_vec_list(cfg, mode = "train"):
             
             trimmed_neighbors = neighbors_list[:3] + [-1] * (3 - len(neighbors_list[:3]))
             trimmed_news_neighbors_dict[key] = trimmed_neighbors
-        for key, neighbors in tqdm(trimmed_news_neighbors_dict.items(), desc='正在进行邻居节点预训练'):
+        for key, neighbors in tqdm(trimmed_news_neighbors_dict.items(), desc='neigbor node processing......'):
             outputs = []
             for neighbor_idx in neighbors:
                 if neighbor_idx == -1:
